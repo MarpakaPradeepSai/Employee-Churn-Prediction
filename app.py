@@ -1,9 +1,11 @@
 import streamlit as st
 import joblib
-import json
 import pandas as pd
 import numpy as np
 from huggingface_hub import hf_hub_download
+import io
+import shap
+import matplotlib.pyplot as plt
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -90,6 +92,157 @@ st.markdown("""
     .feature-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    
+    /* ===== ENHANCED TAB STYLING - MUCH BIGGER TABS WITH BIGGER BOLD TEXT ===== */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 20px;
+        justify-content: center;
+        background-color: transparent;
+        padding: 10px 0;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 90px !important;
+        min-width: 320px !important;
+        padding: 0 50px !important;
+        background-color: #f0f2f6;
+        border-radius: 15px 15px 0 0 !important;
+        font-weight: 900 !important;
+        font-size: 1.4rem !important;
+        color: #1E3A5F !important;
+        border: 2px solid #ddd !important;
+        border-bottom: none !important;
+        transition: all 0.3s ease !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-transform: none !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] p {
+        font-weight: 900 !important;
+        font-size: 1.4rem !important;
+        color: inherit !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e0e5ec !important;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #1E3A5F 0%, #2E5A8F 100%) !important;
+        color: white !important;
+        border: 2px solid #1E3A5F !important;
+        border-bottom: none !important;
+        box-shadow: 0 4px 20px rgba(30, 58, 95, 0.4) !important;
+    }
+    
+    .stTabs [aria-selected="true"] p {
+        color: white !important;
+        font-weight: 900 !important;
+        font-size: 1.4rem !important;
+    }
+    
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-top: 20px;
+    }
+    
+    .stTabs [data-baseweb="tab-border"] {
+        display: none !important;
+    }
+    
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none !important;
+    }
+    
+    /* Upload section styling */
+    .upload-section {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        padding: 2rem;
+        border: 2px dashed #1E3A5F;
+        margin: 1rem 0;
+    }
+    
+    /* Settings card - Light Cream Background (matching feature-card) */
+    .settings-card {
+        background-color: #FFE8C2;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-left: 5px solid #1E3A5F;
+        margin: 1rem 0;
+    }
+    
+    /* Column mapping card - Light Cream Background (matching feature-card) */
+    .mapping-card {
+        background-color: #FFE8C2;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-left: 5px solid #1E3A5F;
+        margin: 1rem 0;
+    }
+    
+    /* Required columns info box */
+    .required-cols-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Success box */
+    .success-box {
+        background-color: #d4edda;
+        border: 1px solid #28a745;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Error box */
+    .error-box {
+        background-color: #f8d7da;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Warning box */
+    .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Stats cards */
+    .stats-card {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        border-top: 4px solid #1E3A5F;
+    }
+    .stats-card h3 {
+        color: #1E3A5F;
+        margin-bottom: 0.5rem;
+    }
+    .stats-card .number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1E3A5F;
     }
     
     /* ===== VIBRANT RAINBOW GRADIENT PREDICT BUTTON ===== */
@@ -281,6 +434,28 @@ st.markdown("""
         font-weight: 900 !important;
     }
     
+    /* Download button styling - UPDATED TO FORCE WHITE TEXT */
+    .stDownloadButton>button {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        animation: none !important;
+    }
+    .stDownloadButton>button:hover {
+        background: linear-gradient(135deg, #20c997, #28a745) !important;
+    }
+    
+    /* Force white text on download buttons for ALL states */
+    .stDownloadButton>button,
+    .stDownloadButton>button:hover,
+    .stDownloadButton>button:active,
+    .stDownloadButton>button:focus,
+    .stDownloadButton>button:visited,
+    .stDownloadButton>button:focus-visible,
+    .stDownloadButton>button span,
+    .stDownloadButton>button:hover span,
+    .stDownloadButton>button:active span {
+        color: white !important;
+    }
+    
     .info-box {
         background-color: #fff3cd;
         border: 1px solid #ffc107;
@@ -324,6 +499,8 @@ st.markdown("""
         padding: 0.75rem 1rem !important;
         font-size: 1.2rem !important;
         font-weight: 500 !important;
+        text-align: center !important;
+        justify-content: center !important;
     }
     div[data-testid="stExpander"] details summary:hover {
         background-color: #2E5A8F !important;
@@ -340,6 +517,94 @@ st.markdown("""
         border: 1px solid #1E3A5F !important;
         border-top: none !important;
         border-radius: 0 0 8px 8px !important;
+    }
+    
+    /* Center the expander summary text */
+    div[data-testid="stExpander"] details summary span {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+    div[data-testid="stExpander"] details summary p {
+        text-align: center !important;
+        width: 100% !important;
+    }
+    
+    /* Checkbox styling */
+    .stCheckbox {
+        padding: 0.5rem 0;
+    }
+    .stCheckbox label {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    /* SHAP explanation styling */
+    .shap-explanation-box {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border: 1px solid #dee2e6;
+    }
+    .shap-factor-leaving {
+        background-color: #fff5f5;
+        border-left: 4px solid #dc3545;
+        padding: 0.8rem 1rem;
+        margin: 0.5rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+    .shap-factor-staying {
+        background-color: #f0fff4;
+        border-left: 4px solid #28a745;
+        padding: 0.8rem 1rem;
+        margin: 0.5rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    /* Spacer for SHAP sections */
+    .shap-section-spacer {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Yellow indicator for unmapped columns */
+    .needs-mapping-indicator {
+        background-color: #fff3cd;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        border: 2px solid #ffc107;
+        margin-top: 4px;
+        font-weight: 600;
+        color: #856404;
+        animation: pulseYellow 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulseYellow {
+        0%, 100% {
+            background-color: #fff3cd;
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+        }
+        50% {
+            background-color: #ffe69c;
+            box-shadow: 0 0 8px 2px rgba(255, 193, 7, 0.6);
+        }
+    }
+    
+    /* Mapped column indicator */
+    .mapped-indicator {
+        background-color: #d4edda;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        border: 1px solid #28a745;
+        margin-top: 4px;
+        font-weight: 500;
+        color: #155724;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -358,6 +623,61 @@ BEST_FEATURES = [
     "number_project",
     "last_evaluation"
 ]
+
+# Feature descriptions for user reference
+FEATURE_DESCRIPTIONS = {
+    "satisfaction_level": "Employee satisfaction level (0.0 - 1.0)",
+    "time_spend_company": "Years at company (integer)",
+    "average_monthly_hours": "Average monthly hours worked (integer)",
+    "number_project": "Number of projects (integer)",
+    "last_evaluation": "Last performance evaluation score (0.0 - 1.0)"
+}
+
+# ============================================================================
+# SHAP FEATURE DESCRIPTIONS FOR BUSINESS INTERPRETATION
+# ============================================================================
+SHAP_FEATURE_DESCRIPTIONS = {
+    'satisfaction_level': {
+        'name': 'Job Satisfaction Level',
+        'description': 'How satisfied the employee is with their job',
+        'high_meaning': 'Employee is very satisfied with their job',
+        'low_meaning': 'Employee is dissatisfied with their job',
+        'high_effect': 'Satisfied employees are more likely to STAY',
+        'low_effect': 'Dissatisfied employees are more likely to LEAVE'
+    },
+    'number_project': {
+        'name': 'Number of Projects',
+        'description': 'Number of projects the employee is assigned to',
+        'high_meaning': 'Employee handles many projects (high workload)',
+        'low_meaning': 'Employee has few projects (possibly underutilized)',
+        'high_effect': 'Too many projects can lead to burnout and LEAVING',
+        'low_effect': 'Too few projects may indicate disengagement risk'
+    },
+    'last_evaluation': {
+        'name': 'Last Performance Evaluation Score',
+        'description': "The employee's most recent performance review score",
+        'high_meaning': 'Employee has excellent performance',
+        'low_meaning': 'Employee has poor performance',
+        'high_effect': 'High performers may leave for better opportunities OR stay due to recognition',
+        'low_effect': 'Poor performers may be at risk of leaving or being let go'
+    },
+    'time_spend_company': {
+        'name': 'Years at Company',
+        'description': 'How long the employee has worked at the company',
+        'high_meaning': 'Long-tenured employee',
+        'low_meaning': 'Relatively new employee',
+        'high_effect': 'Long-tenure employees may leave if feeling stagnant',
+        'low_effect': 'New employees might leave if not properly onboarded'
+    },
+    'average_monthly_hours': {
+        'name': 'Average Monthly Working Hours',
+        'description': 'Average number of hours worked per month',
+        'high_meaning': 'Employee works long hours (potential burnout)',
+        'low_meaning': 'Employee works fewer hours',
+        'high_effect': 'Overworked employees are more likely to LEAVE due to burnout',
+        'low_effect': 'Employees with reasonable hours are more likely to STAY'
+    }
+}
 
 # ============================================================================
 # LOAD MODEL FROM HUGGING FACE
@@ -378,55 +698,156 @@ def load_model_from_huggingface():
         return None
 
 # ============================================================================
+# SHAP EXPLAINER (CACHED)
+# ============================================================================
+@st.cache_resource
+def get_shap_explainer(_model):
+    """Create and cache SHAP TreeExplainer"""
+    try:
+        explainer = shap.TreeExplainer(_model)
+        return explainer
+    except Exception as e:
+        st.error(f"❌ Error creating SHAP explainer: {str(e)}")
+        return None
+
+# ============================================================================
+# SHAP HELPER FUNCTIONS
+# ============================================================================
+def get_shap_feature_info(feature_name):
+    """Get feature description for SHAP interpretation."""
+    default = {
+        'name': feature_name.replace('_', ' ').title(),
+        'description': 'A predictor variable in the model',
+        'high_meaning': 'High value of this feature',
+        'low_meaning': 'Low value of this feature',
+        'high_effect': 'May influence attrition probability',
+        'low_effect': 'May influence attrition probability'
+    }
+    return SHAP_FEATURE_DESCRIPTIONS.get(feature_name, default)
+
+def get_impact_description(shap_value, threshold_high=0.1, threshold_medium=0.05):
+    """Convert SHAP value to impact description."""
+    abs_shap = abs(shap_value)
+    if abs_shap >= threshold_high:
+        strength = "STRONG"
+    elif abs_shap >= threshold_medium:
+        strength = "MODERATE"
+    else:
+        strength = "WEAK"
+    return strength
+
+def generate_shap_explanation(input_df, model, explainer, prediction, prediction_proba):
+    """Generate SHAP waterfall plot and detailed explanation for individual prediction."""
+    
+    # Compute SHAP values
+    shap_values_raw = explainer.shap_values(input_df)
+    
+    # Handle different SHAP versions
+    if isinstance(shap_values_raw, list):
+        # Old SHAP format (list of arrays)
+        shap_values_class_1 = shap_values_raw[1][0]
+        expected_value = explainer.expected_value[1]
+    else:
+        # New SHAP format (3D array)
+        shap_values_class_1 = shap_values_raw[0, :, 1]
+        expected_value = explainer.expected_value[1]
+    
+    # Get feature values
+    x_sample = input_df.values[0]
+    feature_names = BEST_FEATURES
+    
+    # Create SHAP Explanation object for waterfall plot
+    explanation = shap.Explanation(
+        values=shap_values_class_1,
+        base_values=expected_value,
+        data=x_sample,
+        feature_names=feature_names
+    )
+    
+    # Generate waterfall plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    shap.waterfall_plot(explanation, show=False)
+    
+    pred_class_name = "LEAVE" if prediction == 1 else "STAY"
+    prob_leave = prediction_proba[1] * 100
+    
+    plt.title(
+        f"SHAP Waterfall Plot - Explaining Prediction\n"
+        f"Predicted: {pred_class_name} | Probability of Leaving: {prob_leave:.1f}%",
+        fontsize=12,
+        fontweight='bold',
+        pad=15
+    )
+    plt.tight_layout()
+    
+    # Generate text explanation
+    sorted_indices = np.argsort(np.abs(shap_values_class_1))[::-1]
+    
+    factors_leaving = []
+    factors_staying = []
+    
+    for idx in sorted_indices:
+        feat_name = feature_names[idx]
+        feat_value = x_sample[idx]
+        shap_val = shap_values_class_1[idx]
+        info = get_shap_feature_info(feat_name)
+        strength = get_impact_description(shap_val)
+        
+        factor_data = {
+            'name': info['name'],
+            'value': feat_value,
+            'strength': strength,
+            'shap_value': shap_val
+        }
+        
+        if shap_val > 0:
+            factors_leaving.append(factor_data)
+        else:
+            factors_staying.append(factor_data)
+    
+    return fig, factors_leaving, factors_staying
+
+# ============================================================================
 # CALLBACK FUNCTIONS FOR SYNCING SLIDERS AND NUMBER INPUTS
 # ============================================================================
 def sync_satisfaction_slider():
-    """Sync satisfaction level from slider to session state"""
     st.session_state.satisfaction_level = st.session_state.sat_slider
 
 def sync_satisfaction_input():
-    """Sync satisfaction level from number input to session state"""
     st.session_state.satisfaction_level = st.session_state.sat_input
 
 def sync_evaluation_slider():
-    """Sync evaluation from slider to session state"""
     st.session_state.last_evaluation = st.session_state.eval_slider
 
 def sync_evaluation_input():
-    """Sync evaluation from number input to session state"""
     st.session_state.last_evaluation = st.session_state.eval_input
 
 # ============================================================================
-# MAIN APPLICATION
+# HELPER FUNCTIONS
 # ============================================================================
-def main():
-    # Header
-    st.markdown('<h1 class="main-header">👥 Employee Turnover Prediction</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Predict whether an employee is likely to leave the company</p>', unsafe_allow_html=True)
+def convert_df_to_csv(df):
+    return df.to_csv(index=False).encode('utf-8')
+
+def convert_df_to_excel(df):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Predictions')
+    return output.getvalue()
+
+# ============================================================================
+# INDIVIDUAL PREDICTION TAB
+# ============================================================================
+def render_individual_prediction_tab(model, explainer):
+    """Render the individual prediction tab content"""
     
-    # Load model silently
-    model = load_model_from_huggingface()
-    
-    if model is None:
-        st.error("❌ Failed to load model. Please check the Hugging Face repository.")
-        st.info(f"Repository: https://huggingface.co/{HF_REPO_ID}")
-        return
-    
-    # ========================================================================
-    # MAIN INPUT SECTION
-    # ========================================================================
     st.markdown("---")
     st.markdown('<h2 class="section-header">📝 Enter Employee Information</h2>', unsafe_allow_html=True)
     
-    # Initialize session state for syncing slider and number input
     if 'satisfaction_level' not in st.session_state:
         st.session_state.satisfaction_level = 0.5
     if 'last_evaluation' not in st.session_state:
         st.session_state.last_evaluation = 0.7
     
-    # ========================================================================
-    # ROW 1: Satisfaction Level & Last Evaluation (side by side with feature cards)
-    # ========================================================================
     with st.container():
         col1, col2 = st.columns(2)
         
@@ -441,28 +862,19 @@ def main():
             with sat_col1:
                 st.slider(
                     "Satisfaction Slider",
-                    min_value=0.0,
-                    max_value=1.0,
+                    min_value=0.0, max_value=1.0,
                     value=st.session_state.satisfaction_level,
-                    step=0.01,
-                    help="Employee satisfaction level (0 = Very Dissatisfied, 1 = Very Satisfied)",
-                    label_visibility="collapsed",
-                    key="sat_slider",
-                    on_change=sync_satisfaction_slider
+                    step=0.01, label_visibility="collapsed",
+                    key="sat_slider", on_change=sync_satisfaction_slider
                 )
             with sat_col2:
                 st.number_input(
                     "Satisfaction Input",
-                    min_value=0.0,
-                    max_value=1.0,
+                    min_value=0.0, max_value=1.0,
                     value=st.session_state.satisfaction_level,
-                    step=0.01,
-                    format="%.2f",
-                    label_visibility="collapsed",
-                    key="sat_input",
-                    on_change=sync_satisfaction_input
+                    step=0.01, format="%.2f", label_visibility="collapsed",
+                    key="sat_input", on_change=sync_satisfaction_input
                 )
-            
             satisfaction_level = st.session_state.satisfaction_level
         
         with col2:
@@ -476,33 +888,21 @@ def main():
             with eval_col1:
                 st.slider(
                     "Evaluation Slider",
-                    min_value=0.0,
-                    max_value=1.0,
+                    min_value=0.0, max_value=1.0,
                     value=st.session_state.last_evaluation,
-                    step=0.01,
-                    help="Last performance evaluation score (0 = Poor, 1 = Excellent)",
-                    label_visibility="collapsed",
-                    key="eval_slider",
-                    on_change=sync_evaluation_slider
+                    step=0.01, label_visibility="collapsed",
+                    key="eval_slider", on_change=sync_evaluation_slider
                 )
             with eval_col2:
                 st.number_input(
                     "Evaluation Input",
-                    min_value=0.0,
-                    max_value=1.0,
+                    min_value=0.0, max_value=1.0,
                     value=st.session_state.last_evaluation,
-                    step=0.01,
-                    format="%.2f",
-                    label_visibility="collapsed",
-                    key="eval_input",
-                    on_change=sync_evaluation_input
+                    step=0.01, format="%.2f", label_visibility="collapsed",
+                    key="eval_input", on_change=sync_evaluation_input
                 )
-            
             last_evaluation = st.session_state.last_evaluation
         
-        # ========================================================================
-        # ROW 2: Years at Company, Number of Projects, Average Monthly Hours (3 columns)
-        # ========================================================================
         col3, col4, col5 = st.columns(3)
         
         with col3:
@@ -512,13 +912,8 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             time_spend_company = st.number_input(
-                "Years",
-                min_value=1,
-                max_value=40,
-                value=3,
-                step=1,
-                label_visibility="collapsed",
-                help="Number of years the employee has worked at the company"
+                "Years", min_value=1, max_value=40, value=3, step=1,
+                label_visibility="collapsed", key="individual_years"
             )
         
         with col4:
@@ -528,13 +923,8 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             number_project = st.number_input(
-                "Projects",
-                min_value=1,
-                max_value=10,
-                value=4,
-                step=1,
-                label_visibility="collapsed",
-                help="Number of projects the employee is currently working on"
+                "Projects", min_value=1, max_value=10, value=4, step=1,
+                label_visibility="collapsed", key="individual_projects"
             )
         
         with col5:
@@ -544,16 +934,10 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             average_monthly_hours = st.number_input(
-                "Hours",
-                min_value=80,
-                max_value=350,
-                value=200,
-                step=5,
-                label_visibility="collapsed",
-                help="Average number of hours worked per month"
+                "Hours", min_value=80, max_value=350, value=200, step=5,
+                label_visibility="collapsed", key="individual_hours"
             )
     
-    # Create input dictionary
     input_data = {
         'satisfaction_level': satisfaction_level,
         'time_spend_company': time_spend_company,
@@ -562,25 +946,27 @@ def main():
         'last_evaluation': last_evaluation
     }
     
-    # ========================================================================
-    # PREDICTION BUTTON
-    # ========================================================================
     st.markdown("---")
-    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        predict_button = st.button("🔮 Predict Employee Turnover", use_container_width=True)
+        predict_button = st.button("🔮 Predict Employee Turnover", use_container_width=True, key="individual_predict")
     
-    # ========================================================================
-    # PREDICTION RESULTS
-    # ========================================================================
+    # Store predictions in session state so they persist
     if predict_button:
-        # Create input DataFrame with correct feature order
         input_df = pd.DataFrame([input_data])[BEST_FEATURES]
-        
-        # Make prediction
         prediction = model.predict(input_df)[0]
         prediction_proba = model.predict_proba(input_df)[0]
+        
+        st.session_state['ind_prediction'] = prediction
+        st.session_state['ind_proba'] = prediction_proba
+        st.session_state['ind_input_df'] = input_df
+        st.session_state['ind_submitted'] = True
+
+    # Display results if they exist in session state
+    if st.session_state.get('ind_submitted', False):
+        prediction = st.session_state['ind_prediction']
+        prediction_proba = st.session_state['ind_proba']
+        input_df = st.session_state['ind_input_df']
         
         prob_stay = prediction_proba[0] * 100
         prob_leave = prediction_proba[1] * 100
@@ -588,7 +974,6 @@ def main():
         st.markdown("---")
         st.subheader("🎯 Prediction Results")
         
-        # Results in two columns
         col1, col2 = st.columns(2)
         
         with col1:
@@ -613,25 +998,490 @@ def main():
         
         with col2:
             st.markdown("### 📊 Prediction Probabilities")
-            
-            # Stay probability with GREEN bar
             st.write(f"**Probability of Staying:** {prob_stay:.1f}%")
             st.markdown(f"""
             <div class="progress-bar-container">
                 <div class="progress-bar-green" style="width: {prob_stay}%;"></div>
             </div>
             """, unsafe_allow_html=True)
-            
-            # Leave probability with RED bar
             st.write(f"**Probability of Leaving:** {prob_leave:.1f}%")
             st.markdown(f"""
             <div class="progress-bar-container">
                 <div class="progress-bar-red" style="width: {prob_leave}%;"></div>
             </div>
             """, unsafe_allow_html=True)
+        
+        # ================================================================
+        # SHAP EXPLANATION SECTION (DROPDOWN)
+        # ================================================================
+        st.markdown("---")
+        
+        with st.expander("**🔍 Why did the model make this prediction? (Click to expand SHAP Explanation)**"):
+            
+            if explainer is not None:
+                try:
+                    with st.spinner("Generating SHAP explanation..."):
+                        # Generate SHAP explanation
+                        fig, factors_leaving, factors_staying = generate_shap_explanation(
+                            input_df, model, explainer, prediction, prediction_proba
+                        )
+                    
+                    # Display the waterfall plot
+                    st.markdown("### 📊 SHAP Waterfall Plot")
+                    st.pyplot(fig)
+                    plt.close(fig)
+                    
+                    st.markdown("""
+                    <p style="text-align: center; color: #666; font-style: italic; margin-top: -10px;">
+                        Red bars (positive) → increase probability of leaving | Blue bars (negative) → decrease probability of leaving
+                    </p>
+                    """, unsafe_allow_html=True)
+                    
+                    # Display detailed interpretation
+                    st.markdown("---")
+                    
+                    st.markdown("#### 📊 WHY THE MODEL MADE THIS PREDICTION")
+                    st.markdown("Here are the main factors that influenced this prediction:")
+                    
+                    # Factors pushing toward LEAVING
+                    if factors_leaving:
+                        st.markdown("##### 🔴 FACTORS PUSHING TOWARD LEAVING:")
+                        for i, factor in enumerate(factors_leaving, 1):
+                            st.markdown(f"""
+                            <div class="shap-factor-leaving">
+                                <strong>{i}. {factor['name']}</strong><br/>
+                                • This employee's value: <strong>{factor['value']:.2f}</strong><br/>
+                                • Impact: <strong>{factor['strength']}</strong> push toward LEAVING
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    # Add spacing between the two sections
+                    st.markdown('<div class="shap-section-spacer"></div>', unsafe_allow_html=True)
+                    
+                    # Factors pushing toward STAYING
+                    if factors_staying:
+                        st.markdown("##### 🟢 FACTORS PUSHING TOWARD STAYING:")
+                        for i, factor in enumerate(factors_staying, 1):
+                            st.markdown(f"""
+                            <div class="shap-factor-staying">
+                                <strong>{i}. {factor['name']}</strong><br/>
+                                • This employee's value: <strong>{factor['value']:.2f}</strong><br/>
+                                • Impact: <strong>{factor['strength']}</strong> push toward STAYING
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    st.error(f"Error generating SHAP explanation: {str(e)}")
+                    st.info("The prediction is still valid, but we couldn't generate the detailed explanation.")
+            else:
+                st.warning("SHAP explainer not available. Unable to generate explanation.")
 
 # ============================================================================
-# RUN APPLICATION
+# BATCH PREDICTION TAB
 # ============================================================================
+def render_batch_prediction_tab(model):
+    """Render the batch prediction tab content"""
+    
+    st.markdown("---")
+    st.markdown('<h2 class="section-header">📊 Batch Employee Prediction</h2>', unsafe_allow_html=True)
+    
+    with st.expander("**📋 Required Columns in Your File (Click to Expand)**"):
+        st.markdown("""
+        <div style="background-color: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <p>Your uploaded file <strong>must contain</strong> these columns (or you can map your columns using Column Mapping):</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            for feature in BEST_FEATURES[:3]:
+                st.markdown(f"""
+                <div style="background-color: #f8f9fa; padding: 0.8rem; border-radius: 6px; margin: 0.5rem 0; border-left: 4px solid #1E3A5F;">
+                    <strong>{feature}</strong><br/>
+                    <small style="color: #666;">{FEATURE_DESCRIPTIONS[feature]}</small>
+                </div>
+                """, unsafe_allow_html=True)
+        with col2:
+            for feature in BEST_FEATURES[3:]:
+                st.markdown(f"""
+                <div style="background-color: #f8f9fa; padding: 0.8rem; border-radius: 6px; margin: 0.5rem 0; border-left: 4px solid #1E3A5F;">
+                    <strong>{feature}</strong><br/>
+                    <small style="color: #666;">{FEATURE_DESCRIPTIONS[feature]}</small>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.info("💡 **Tip:** Additional columns will be preserved in the output but won't be used for prediction.")
+    
+    st.markdown("---")
+    
+    # File Upload Section
+    st.markdown("### 📁 Upload Your Data")
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.markdown("""<div class="settings-card"><h4>⚙️ File Settings</h4></div>""", unsafe_allow_html=True)
+        file_format = st.selectbox("Select file format", options=["CSV", "Excel (.xlsx)"], index=0, key="file_format")
+    
+    with col2:
+        if file_format == "CSV":
+            uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="csv_uploader")
+        else:
+            uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx", "xls"], key="excel_uploader")
+    
+    st.markdown("---")
+    
+    # Prediction Output Settings
+    st.markdown("### ⚙️ Prediction Output Settings")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""<div class="settings-card"><h4>📝 Column Name for Predictions</h4></div>""", unsafe_allow_html=True)
+        column_name_option = st.selectbox(
+            "Select prediction column name",
+            options=["Prediction", "Churn", "Will_Leave", "Turnover", "Custom"],
+            index=0, key="column_name_option"
+        )
+        if column_name_option == "Custom":
+            custom_column_name = st.text_input("Enter custom column name", value="My_Prediction", key="custom_column_name")
+            prediction_column_name = custom_column_name if custom_column_name.strip() else "Prediction"
+        else:
+            prediction_column_name = column_name_option
+    
+    with col2:
+        st.markdown("""<div class="settings-card"><h4>🏷️ Prediction Labels</h4></div>""", unsafe_allow_html=True)
+        label_option = st.selectbox(
+            "Select prediction labels",
+            options=["Leave / Stay", "Yes / No", "Churn / Not Churn", "1 / 0", "True / False", "Custom"],
+            index=0, key="label_option"
+        )
+        
+        label_mappings = {
+            "Leave / Stay": {1: "Leave", 0: "Stay"},
+            "Yes / No": {1: "Yes", 0: "No"},
+            "Churn / Not Churn": {1: "Churn", 0: "Not Churn"},
+            "1 / 0": {1: "1", 0: "0"},
+            "True / False": {1: "True", 0: "False"}
+        }
+        
+        if label_option == "Custom":
+            custom_col1, custom_col2 = st.columns(2)
+            with custom_col1:
+                custom_leave_label = st.text_input("Label for LEAVING", value="Leaving", key="custom_leave_label")
+            with custom_col2:
+                custom_stay_label = st.text_input("Label for STAYING", value="Staying", key="custom_stay_label")
+            prediction_labels = {
+                1: custom_leave_label if custom_leave_label.strip() else "Leaving",
+                0: custom_stay_label if custom_stay_label.strip() else "Staying"
+            }
+        else:
+            prediction_labels = label_mappings[label_option]
+        
+        st.info(f"📌 **Label Preview:** Leaving → '{prediction_labels[1]}' | Staying → '{prediction_labels[0]}'")
+    
+    st.markdown("---")
+    st.markdown("### 📊 Additional Output Options")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""<div class="settings-card"><h4>🎯 Probability Columns</h4></div>""", unsafe_allow_html=True)
+        include_probabilities = st.toggle("Include prediction probabilities in output", value=True, key="include_probabilities")
+        if include_probabilities:
+            st.success("✅ Two additional columns will be added: `Probability_Stay` and `Probability_Leave`")
+    
+    with col2:
+        st.markdown("""<div class="settings-card"><h4>⚠️ High Risk Filter</h4></div>""", unsafe_allow_html=True)
+        include_high_risk_download = st.toggle("Enable high-risk employees download", value=True, key="include_high_risk")
+        if include_high_risk_download:
+            st.success("✅ A separate download button for high-risk employees will be available")
+    
+    # Process Uploaded File
+    if uploaded_file is not None:
+        st.markdown("---")
+        st.markdown("### 📄 Uploaded Data Preview")
+        
+        try:
+            if file_format == "CSV":
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
+            
+            # File info stats
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown(f"""<div class="stats-card"><h4>Total Rows</h4><div class="number">{len(df):,}</div></div>""", unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"""<div class="stats-card"><h4>Total Columns</h4><div class="number">{len(df.columns)}</div></div>""", unsafe_allow_html=True)
+            with col3:
+                available_features = [col for col in BEST_FEATURES if col in df.columns]
+                st.markdown(f"""<div class="stats-card"><h4>Required Cols Found</h4><div class="number">{len(available_features)}/{len(BEST_FEATURES)}</div></div>""", unsafe_allow_html=True)
+            
+            st.dataframe(df.head(10), use_container_width=True)
+            
+            missing_columns = [col for col in BEST_FEATURES if col not in df.columns]
+            
+            # ========================================================================
+            # SIMPLIFIED COLUMN MAPPING SECTION
+            # ========================================================================
+            st.markdown("---")
+            
+            st.markdown("""<div class="settings-card"><h4>🔄 Column Mapping</h4></div>""", unsafe_allow_html=True)
+            enable_column_mapping = st.toggle(
+                "Enable Column Mapping — Map your columns to model features (temporary, original data unchanged)",
+                value=len(missing_columns) > 0,
+                key="enable_column_mapping"
+            )
+            
+            column_mapping = {}
+            mapping_valid = True
+            column_list = list(df.columns)
+            
+            if enable_column_mapping:
+                st.markdown("""
+                <div class="mapping-card">
+                    <p style="margin: 0; font-size: 0.9rem;">🔧 <strong>Map your columns below.</strong> This is temporary — your original data remains unchanged.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Add "Select Column" as placeholder option at the beginning
+                mapping_options = ["Select Column"] + column_list
+                
+                # Create compact mapping table with 5 columns
+                cols = st.columns(5)
+                for idx, feature in enumerate(BEST_FEATURES):
+                    with cols[idx]:
+                        st.markdown(f"**{feature.replace('_', ' ').title()}**")
+                        
+                        # Determine the default index
+                        # If the feature exists in the uploaded data columns, auto-select it
+                        if feature in column_list:
+                            default_index = mapping_options.index(feature)
+                        else:
+                            default_index = 0  # "Select Column"
+                        
+                        selected = st.selectbox(
+                            f"Map {feature}",
+                            options=mapping_options,
+                            index=default_index,
+                            key=f"map_{feature}",
+                            label_visibility="collapsed"
+                        )
+                        column_mapping[feature] = selected
+                        
+                        # Add visual indicator based on selection
+                        if selected == "Select Column":
+                            st.markdown('<div class="needs-mapping-indicator">⚠️ Needs Mapping</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown('<div class="mapped-indicator">✓ Mapped</div>', unsafe_allow_html=True)
+                
+                # Validation Logic
+                used_columns = list(column_mapping.values())
+                
+                # Check 1: Ensure no column is left as "Select Column"
+                if "Select Column" in used_columns:
+                    st.warning("⚠️ Please select a column for every feature to proceed.")
+                    mapping_valid = False
+                else:
+                    # Check 2: Check for duplicates (only if no placeholders exist)
+                    duplicate_columns = [col for col in set(used_columns) if used_columns.count(col) > 1]
+                    if duplicate_columns:
+                        st.error(f"⚠️ Duplicate mapping: **{', '.join(duplicate_columns)}** is mapped to multiple features.")
+                        mapping_valid = False
+                    else:
+                        st.success("✅ Mapping valid! Ready to predict.")
+            else:
+                # No mapping - use exact column names
+                for feature in BEST_FEATURES:
+                    column_mapping[feature] = feature
+                
+                if missing_columns:
+                    st.error(f"❌ Missing columns: **{', '.join(missing_columns)}**. Enable Column Mapping above to map your columns.")
+                    mapping_valid = False
+                else:
+                    st.success("✅ All required columns found! Ready to predict.")
+            
+            # ========================================================================
+            # DATA QUALITY CHECKS: NULL VALUES AND NON-NUMERIC DATA
+            # ========================================================================
+            if mapping_valid:
+                # Check for null values in mapped columns
+                null_issues = []
+                for feature in BEST_FEATURES:
+                    source_col = column_mapping[feature]
+                    null_count = df[source_col].isnull().sum()
+                    if null_count > 0:
+                        null_issues.append(f"**{source_col}**: {null_count} null value(s)")
+                
+                if null_issues:
+                    st.warning(f"⚠️ **Null Values Detected:** Your data contains null values in the following columns. Please clean your data before proceeding:\n\n" + "\n\n".join([f"• {issue}" for issue in null_issues]))
+                    mapping_valid = False
+                
+                # Check for non-numeric data types in mapped columns
+                non_numeric_issues = []
+                for feature in BEST_FEATURES:
+                    source_col = column_mapping[feature]
+                    if not pd.api.types.is_numeric_dtype(df[source_col]):
+                        non_numeric_issues.append(f"**{source_col}** (current type: `{df[source_col].dtype}`)")
+                
+                if non_numeric_issues:
+                    st.warning(f"⚠️ **Non-Numeric Data Detected:** The following columns must contain numeric values (integer or float) for the model to work. Please ensure these columns contain only numbers:\n\n" + "\n\n".join([f"• {issue}" for issue in non_numeric_issues]))
+                    mapping_valid = False
+            
+            # Prediction Section
+            if mapping_valid:
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    batch_predict_button = st.button("🔮 Generate Batch Predictions", use_container_width=True, key="batch_predict")
+                
+                # Logic to process and store batch predictions
+                if batch_predict_button:
+                    with st.spinner("🔄 Processing predictions..."):
+                        # Create temporary dataframe with mapped columns
+                        prediction_df = pd.DataFrame()
+                        for feature in BEST_FEATURES:
+                            prediction_df[feature] = df[column_mapping[feature]].copy()
+                        
+                        predictions = model.predict(prediction_df)
+                        prediction_probabilities = model.predict_proba(prediction_df)
+                        
+                        # Result dataframe with original columns preserved
+                        result_df = df.copy()
+                        result_df[prediction_column_name] = [prediction_labels[p] for p in predictions]
+                        
+                        if include_probabilities:
+                            result_df[f"{prediction_column_name}_Probability_Stay"] = (prediction_probabilities[:, 0] * 100).round(2)
+                            result_df[f"{prediction_column_name}_Probability_Leave"] = (prediction_probabilities[:, 1] * 100).round(2)
+                    
+                    # Store everything in session state
+                    st.session_state['batch_result_df'] = result_df
+                    st.session_state['batch_probabilities'] = prediction_probabilities
+                    st.session_state['batch_predictions'] = predictions
+                    st.session_state['batch_submitted'] = True
+
+                # Display batch results if they exist in session state
+                if st.session_state.get('batch_submitted', False):
+                    result_df = st.session_state['batch_result_df']
+                    prediction_probabilities = st.session_state['batch_probabilities']
+                    predictions = st.session_state['batch_predictions']
+
+                    st.success("✅ Predictions generated successfully!")
+                    
+                    if enable_column_mapping:
+                        st.info("ℹ️ Column mapping was used. Original column names preserved in output.")
+                    
+                    st.markdown("---")
+                    st.markdown("### 📊 Prediction Results")
+                    
+                    leaving_count = sum(predictions == 1)
+                    staying_count = sum(predictions == 0)
+                    leaving_percentage = (leaving_count / len(predictions)) * 100
+                    staying_percentage = (staying_count / len(predictions)) * 100
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.markdown(f"""<div class="stats-card"><h4>Total Employees</h4><div class="number">{len(predictions):,}</div></div>""", unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"""<div class="stats-card" style="border-top-color: #dc3545;"><h4>Predicted to Leave</h4><div class="number" style="color: #dc3545;">{leaving_count:,}</div><p style="color: #666;">({leaving_percentage:.1f}%)</p></div>""", unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(f"""<div class="stats-card" style="border-top-color: #28a745;"><h4>Predicted to Stay</h4><div class="number" style="color: #28a745;">{staying_count:,}</div><p style="color: #666;">({staying_percentage:.1f}%)</p></div>""", unsafe_allow_html=True)
+                    with col4:
+                        avg_leave_prob = prediction_probabilities[:, 1].mean() * 100
+                        st.markdown(f"""<div class="stats-card" style="border-top-color: #ffc107;"><h4>Avg. Leave Probability</h4><div class="number" style="color: #ffc107;">{avg_leave_prob:.1f}%</div></div>""", unsafe_allow_html=True)
+                    
+                    st.markdown("#### 📈 Turnover Distribution")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"**Staying:** {staying_percentage:.1f}%")
+                        st.markdown(f"""<div class="progress-bar-container"><div class="progress-bar-green" style="width: {staying_percentage}%;"></div></div>""", unsafe_allow_html=True)
+                    with col2:
+                        st.write(f"**Leaving:** {leaving_percentage:.1f}%")
+                        st.markdown(f"""<div class="progress-bar-container"><div class="progress-bar-red" style="width: {leaving_percentage}%;"></div></div>""", unsafe_allow_html=True)
+                    
+                    st.markdown("#### 📄 Result Data Preview")
+                    st.dataframe(result_df.head(20), use_container_width=True)
+                    
+                    st.markdown("---")
+                    st.markdown("### 📥 Download Results")
+                    
+                    if include_high_risk_download:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                    else:
+                        col1, col2 = st.columns([1, 1])
+                    
+                    with col1:
+                        csv_data = convert_df_to_csv(result_df)
+                        st.download_button(
+                            label="📥 Download as CSV", data=csv_data,
+                            file_name="employee_predictions.csv", mime="text/csv",
+                            use_container_width=True, key="download_csv"
+                        )
+                    
+                    with col2:
+                        excel_data = convert_df_to_excel(result_df)
+                        st.download_button(
+                            label="📥 Download as Excel", data=excel_data,
+                            file_name="employee_predictions.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True, key="download_excel"
+                        )
+                    
+                    if include_high_risk_download:
+                        with col3:
+                            high_risk_df = result_df[prediction_probabilities[:, 1] > 0.5]
+                            if len(high_risk_df) > 0:
+                                high_risk_csv = convert_df_to_csv(high_risk_df)
+                                st.download_button(
+                                    label=f"📥 High Risk Only ({len(high_risk_df)})",
+                                    data=high_risk_csv, file_name="high_risk_employees.csv",
+                                    mime="text/csv", use_container_width=True, key="download_high_risk"
+                                )
+                            else:
+                                st.info("No high-risk employees found")
+        
+        except Exception as e:
+            st.error(f"❌ Error reading file: {str(e)}")
+            st.info("Please ensure your file is properly formatted and not corrupted.")
+    
+    else:
+        st.markdown("---")
+        with st.expander("**📋 View Sample Data Format**"):
+            sample_data = pd.DataFrame({
+                'employee_id': [1, 2, 3, 4, 5],
+                'satisfaction_level': [0.38, 0.80, 0.11, 0.72, 0.37],
+                'time_spend_company': [3, 5, 4, 3, 2],
+                'average_monthly_hours': [157, 262, 272, 223, 159],
+                'number_project': [2, 5, 7, 5, 2],
+                'last_evaluation': [0.53, 0.86, 0.88, 0.87, 0.52],
+                'department': ['sales', 'IT', 'IT', 'sales', 'hr'],
+                'salary': ['low', 'medium', 'medium', 'high', 'low']
+            })
+            st.dataframe(sample_data, use_container_width=True)
+            st.info("💡 Only the 5 required columns will be used for prediction. Other columns will be preserved in the output.")
+
+# ============================================================================
+# MAIN APPLICATION
+# ============================================================================
+def main():
+    st.markdown('<h1 class="main-header">👥 Employee Turnover Prediction</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Predict whether employees are likely to leave the company</p>', unsafe_allow_html=True)
+    
+    model = load_model_from_huggingface()
+    
+    if model is None:
+        st.error("❌ Failed to load model. Please check the Hugging Face repository.")
+        st.info(f"Repository: https://huggingface.co/{HF_REPO_ID}")
+        return
+    
+    # Create SHAP explainer
+    explainer = get_shap_explainer(model)
+    
+    tab1, tab2 = st.tabs(["📝 Individual Prediction", "📊 Batch Prediction"])
+    
+    with tab1:
+        render_individual_prediction_tab(model, explainer)
+    
+    with tab2:
+        render_batch_prediction_tab(model)
+
 if __name__ == "__main__":
     main()
