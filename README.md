@@ -57,7 +57,7 @@ This project uses machine learning to predict which employees are likely to leav
 
 ### Objective
 
-Predict whether an employee will leave the company (employee attrition) based on various factors such as job satisfaction, workload, tenure, etc. This will help the organization identify at-risk employees and take proactive measures to improve retention.
+Predict whether an employee will leave the company (employee attrition) based on various factors such as job satisfaction, workload, tenure, etc. This will help the organization identify **at-risk** employees and take proactive measures to improve retention.
 
 
 <div align="center">
