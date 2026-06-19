@@ -216,7 +216,7 @@ All models were validated using **Stratified K-Fold Cross-Validation (k=5)** to 
 
 ### 🌳 Why Random Forest?
 
-Despite strong competition, **Random Forest** was selected for deployment based on the following criteria:
+Despite strong competition and slightly higher performance from other models on specific metrics, **Random Forest** was selected for deployment based on the following criteria:
 
 #### 1. Optimal Precision-Recall Balance
 While the **Decision Tree** achieved slightly higher recall for leavers (95.48%), its precision dropped to 82.25%. This would result in a **17% false alarm rate**, causing HR to waste resources retaining employees who aren't actually leaving. Random Forest maintains a **98.95% precision**, ensuring that when the model flags a risk, it is almost certainly real.
