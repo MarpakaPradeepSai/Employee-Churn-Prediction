@@ -195,19 +195,22 @@ All models were validated using **Stratified K-Fold Cross-Validation (k=5)** to 
 
 <div align="center">
 
-| Model | Recall (Left) | Recall (Stayed) | Precision (Left) | Precision (Stayed) | Balanced Acc | Features Used |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Random Forest** 🏆 | **0.9447** | **0.9980** | **0.9895** | **0.9891** | **0.9714** | **5** |
-| Voting Classifier | 0.9447 | 0.9990 | 0.9947 | 0.9891 | 0.9719 | 9 |
-| LightGBM | 0.9447 | 0.9950 | 0.9741 | 0.9891 | 0.9699 | 9 |
-| XGB Classifier | 0.9397 | 0.9930 | 0.9639 | 0.9881 | 0.9664 | 17 |
-| Gradient Boosting | 0.9497 | 0.9770 | 0.8915 | 0.9899 | 0.9634 | 8 |
-| Decision Tree | 0.9548 | 0.9590 | 0.8225 | 0.9907 | 0.9569 | 2 |
-| KNN Classifier | 0.9347 | 0.9860 | 0.9300 | 0.9870 | 0.9603 | 5 |
-| SVC | 0.9296 | 0.9550 | 0.8043 | 0.9856 | 0.9423 | 8 |
-| Logistic Regression | 0.8894 | 0.7842 | 0.4504 | 0.9727 | 0.8368 | 8 |
+| Model | Recall (Left) | Recall (Stayed) | Precision (Left) | Precision (Stayed) | F1 (Left) | F1 (Stayed) | Balanced Acc | Features Used |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Random Forest** 🏆 | **0.9447** | **0.9980** | **0.9895** | **0.9891** | **0.9666** | **0.9935** | **0.9714** | **5** |
+| Voting Classifier | 0.9447 | 0.9990 | 0.9947 | 0.9891 | 0.9691 | 0.9940 | 0.9719 | 9 |
+| LightGBM Classifier | 0.9447 | 0.9950 | 0.9741 | 0.9891 | 0.9592 | 0.9920 | 0.9699 | 9 |
+| XGB Classifier | 0.9397 | 0.9930 | 0.9639 | 0.9881 | 0.9517 | 0.9905 | 0.9664 | 17 |
+| CatBoost Classifier | 0.9347 | 0.9920 | 0.9588 | 0.9871 | 0.9466 | 0.9895 | 0.9633 | 8 |
+| Gradient Boosting | 0.9497 | 0.9770 | 0.8915 | 0.9899 | 0.9197 | 0.9834 | 0.9634 | 8 |
+| Decision Tree | 0.9548 | 0.9590 | 0.8225 | 0.9907 | 0.8837 | 0.9746 | 0.9569 | 2 |
+| Extra Trees Classifier | 0.9447 | 0.9560 | 0.8103 | 0.9886 | 0.8724 | 0.9721 | 0.9504 | 3 |
+| SVC | 0.9296 | 0.9550 | 0.8043 | 0.9856 | 0.8625 | 0.9701 | 0.9423 | 8 |
+| KNN Classifier | 0.9347 | 0.9860 | 0.9300 | 0.9870 | 0.9323 | 0.9865 | 0.9603 | 5 |
+| Logistic Regression | 0.8894 | 0.7842 | 0.4504 | 0.9727 | 0.5980 | 0.8684 | 0.8368 | 8 |
 
 </div>
+
 
 <br>
 
